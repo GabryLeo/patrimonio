@@ -1,0 +1,5 @@
+export { default as AssetsListPage } from './AssetsListPage'
+export { default as AssetOverviewPage } from './AssetOverviewPage'
+export { default as AssetFinancialPage } from './AssetFinancialPage'
+export { default as AssetTimelinePage } from './AssetTimelinePage'
+export { default as AssetDocumentsPage } from './AssetDocumentsPage'

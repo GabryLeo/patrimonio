@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  assets    Asset[]
+}
+
+model Asset {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  type            AssetType
+  description     String?
+  coverImageUrl   String?
+  totalValue      Decimal?          @db.Decimal(15, 2)
+  acquisitionDate DateTime?
+  status          AssetStatus       @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  categories      AssetCategory[]
+  financials      FinancialRecord[]
+  memories        Memory[]
+  checklists      Checklist[]
+  attachments     Attachment[]
+}
+
+enum AssetType {
+  APARTMENT
+  HOUSE
+  CAR
+  LAND
+  COMMERCIAL
+  MOTORCYCLE
+  BOAT
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  SOLD
+  ARCHIVED
+}
+
+model AssetCategory {
+  id         String            @id @default(cuid())
+  assetId    String
+  asset      Asset             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  name       String
+  color      String
+  icon       String?
+  order      Int               @default(0)
+  financials FinancialRecord[]
+}
+
+model FinancialRecord {
+  id          String         @id @default(cuid())
+  assetId     String
+  asset       Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    AssetCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title       String
+  amount      Decimal        @db.Decimal(15, 2)
+  eventDate   DateTime
+  createdAt   DateTime       @default(now())
+  notes       String?
+  attachments Attachment[]
+}
+
+model Attachment {
+  id                String           @id @default(cuid())
+  assetId           String?
+  asset             Asset?           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  financialRecordId String?
+  financialRecord   FinancialRecord? @relation(fields: [financialRecordId], references: [id], onDelete: Cascade)
+  memoryId          String?
+  memory            Memory?          @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  url               String
+  name              String
+  size              Int
+  mimeType          String
+  type              AttachmentType
+  createdAt         DateTime         @default(now())
+}
+
+enum AttachmentType {
+  PDF
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+model Memory {
+  id          String       @id @default(cuid())
+  assetId     String
+  asset       Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  eventDate   DateTime
+  createdAt   DateTime     @default(now())
+  attachments Attachment[]
+}
+
+model Checklist {
+  id        String          @id @default(cuid())
+  assetId   String
+  asset     Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  title     String
+  createdAt DateTime        @default(now())
+  items     ChecklistItem[]
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  title       String
+  completed   Boolean   @default(false)
+  order       Int       @default(0)
+}
