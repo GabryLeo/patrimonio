@@ -4,32 +4,21 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const hash = (pwd: string) => bcrypt.hash(pwd, 10)
+  const email = process.env.SEED_EMAIL ?? 'Byelalves@yahoo.com.br'
+  const password = process.env.SEED_PASSWORD
+  if (!password) throw new Error('SEED_PASSWORD env var required')
 
-  const gabry = await prisma.user.upsert({
-    where: { email: 'gabry@patrimonio.app' },
-    update: {},
-    create: {
-      name: 'Gabryel',
-      email: 'gabry@patrimonio.app',
-      password: await hash('patrimonio2026'),
+  await prisma.user.deleteMany()
+
+  const user = await prisma.user.create({
+    data: {
+      name: 'Gabryel & Lu',
+      email,
+      password: await bcrypt.hash(password, 10),
     },
   })
 
-  const lu = await prisma.user.upsert({
-    where: { email: 'lu@patrimonio.app' },
-    update: {},
-    create: {
-      name: 'Lu',
-      email: 'lu@patrimonio.app',
-      password: await hash('patrimonio2026'),
-    },
-  })
-
-  console.log('✅ Usuários criados:')
-  console.log(`  ${gabry.email}`)
-  console.log(`  ${lu.email}`)
-  console.log('🔑 Senha: patrimonio2026')
+  console.log('✅ Usuário criado:', user.email)
 }
 
 main()
