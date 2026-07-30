@@ -8,6 +8,17 @@ import AssetOverviewPage from './pages/assets/AssetOverviewPage'
 import AssetFinancialPage from './pages/assets/AssetFinancialPage'
 import AssetTimelinePage from './pages/assets/AssetTimelinePage'
 import AssetDocumentsPage from './pages/assets/AssetDocumentsPage'
+import MorePage from './pages/more/MorePage'
+
+function ComingSoon({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+      <p className="text-4xl mb-4">🚧</p>
+      <h2 className="text-xl font-bold mb-2">{label}</h2>
+      <p className="text-muted-foreground text-sm">Em breve</p>
+    </div>
+  )
+}
 
 function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -32,6 +43,8 @@ export const router = createBrowserRouter([
           { path: '/assets/:id/financial', element: <AssetFinancialPage /> },
           { path: '/assets/:id/timeline', element: <AssetTimelinePage /> },
           { path: '/assets/:id/documents', element: <AssetDocumentsPage /> },
+          { path: '/files', element: <ComingSoon label="Arquivos" /> },
+          { path: '/more', element: <MorePage /> },
         ],
       },
     ],
