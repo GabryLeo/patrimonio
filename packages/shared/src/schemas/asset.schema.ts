@@ -4,7 +4,7 @@ export const CreateAssetSchema = z.object({
   name: z.string().min(1, 'Nome obrigatório').max(100),
   type: z.enum(['APARTMENT', 'HOUSE', 'CAR', 'LAND', 'COMMERCIAL', 'MOTORCYCLE', 'BOAT', 'OTHER']),
   description: z.string().max(500).optional(),
-  totalValue: z.number().positive().optional(),
+  totalValue: z.number().nonnegative().optional(),
   acquisitionDate: z.string().optional(),
 })
 

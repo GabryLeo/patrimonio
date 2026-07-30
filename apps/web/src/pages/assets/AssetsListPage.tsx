@@ -28,10 +28,14 @@ export default function AssetsListPage() {
   })
 
   async function onSubmit(data: CreateAssetInput) {
-    const asset = await createAsset.mutateAsync(data)
-    reset()
-    setOpen(false)
-    navigate(`/assets/${asset.id}`)
+    try {
+      const asset = await createAsset.mutateAsync(data)
+      reset()
+      setOpen(false)
+      navigate(`/assets/${asset.id}`)
+    } catch {
+      // createAsset.error handles display
+    }
   }
 
   return (
@@ -116,7 +120,11 @@ export default function AssetsListPage() {
               <Input
                 type="number"
                 placeholder="0,00"
-                {...register('totalValue', { valueAsNumber: true })}
+                step="0.01"
+                min="0"
+                {...register('totalValue', {
+                  setValueAs: (v) => (v === '' || v === null) ? undefined : parseFloat(v),
+                })}
               />
             </div>
             <div className="flex gap-2 pt-2">
