@@ -3,8 +3,8 @@ import { z } from 'zod'
 export const CreateFinancialRecordSchema = z.object({
   categoryId: z.string().optional(),
   title: z.string().min(1, 'Título obrigatório').max(200),
-  amount: z.number().positive('Valor deve ser positivo'),
-  eventDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  amount: z.number({ invalid_type_error: 'Informe um valor válido', required_error: 'Valor obrigatório' }).positive('Valor deve ser positivo'),
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida').or(z.string().datetime({ offset: true, message: 'Data inválida' })),
   notes: z.string().max(1000).optional(),
 })
 

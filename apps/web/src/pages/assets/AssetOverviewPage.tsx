@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
-import { ArrowLeft, DollarSign, Clock, FileText, Plus, Trash2 } from 'lucide-react'
-import { useAsset } from '@/hooks/useAssets'
+import { ArrowLeft, DollarSign, Clock, FileText, Plus, Trash2, Pencil } from 'lucide-react'
+import { useAsset, useUpdateAsset, useDeleteAsset } from '@/hooks/useAssets'
 import { useFinancial } from '@/hooks/useFinancial'
 import { useCategories, useCreateCategory, useDeleteCategory } from '@/hooks/useCategories'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -12,10 +12,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ASSET_TYPE_LABELS } from '@patrimonio/shared'
 import { cn } from '@/lib/cn'
 
 const PRESET_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280']
+const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPE_LABELS) as (keyof typeof ASSET_TYPE_LABELS)[]
 
 const tabs = [
   { label: 'Financeiro', path: 'financial', icon: DollarSign },
@@ -31,10 +33,20 @@ export default function AssetOverviewPage() {
   const { data: categories } = useCategories(id!)
   const createCategory = useCreateCategory(id!)
   const deleteCategory = useDeleteCategory(id!)
+  const updateAsset = useUpdateAsset(id!)
+  const deleteAsset = useDeleteAsset()
 
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [catDialogOpen, setCatDialogOpen] = useState(false)
   const [catName, setCatName] = useState('')
   const [catColor, setCatColor] = useState(PRESET_COLORS[0])
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState('')
+  const [editValue, setEditValue] = useState('')
+  const [editDate, setEditDate] = useState('')
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const totalInvested = records?.reduce((sum: number, r: any) => sum + Number(r.amount), 0) ?? 0
 
@@ -49,7 +61,30 @@ export default function AssetOverviewPage() {
     await createCategory.mutateAsync({ name: catName.trim(), color: catColor })
     setCatName('')
     setCatColor(PRESET_COLORS[0])
-    setDialogOpen(false)
+    setCatDialogOpen(false)
+  }
+
+  function openEdit() {
+    setEditName(asset?.name ?? '')
+    setEditType(asset?.type ?? '')
+    setEditValue(asset?.totalValue ? String(asset.totalValue) : '')
+    setEditDate(asset?.acquisitionDate ? asset.acquisitionDate.slice(0, 10) : '')
+    setEditDialogOpen(true)
+  }
+
+  async function handleEditSave() {
+    await updateAsset.mutateAsync({
+      name: editName || undefined,
+      type: editType as any || undefined,
+      totalValue: editValue ? parseFloat(editValue) : undefined,
+      acquisitionDate: editDate || undefined,
+    })
+    setEditDialogOpen(false)
+  }
+
+  async function handleDelete() {
+    await deleteAsset.mutateAsync(id!)
+    navigate('/assets')
   }
 
   if (isLoading) {
@@ -67,10 +102,20 @@ export default function AssetOverviewPage() {
   return (
     <div className="pb-6">
       <div className="px-4 pt-6 mb-4">
-        <button onClick={() => navigate('/assets')} className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
-          <ArrowLeft className="h-4 w-4" />
-          Patrimônios
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => navigate('/assets')} className="flex items-center gap-2 text-muted-foreground text-sm">
+            <ArrowLeft className="h-4 w-4" />
+            Patrimônios
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={openEdit} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground">
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button onClick={() => setDeleteDialogOpen(true)} className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{asset.name}</h1>
@@ -86,20 +131,25 @@ export default function AssetOverviewPage() {
 
       <div className="px-4 mb-6">
         <Card className="border-0 bg-primary text-primary-foreground">
-          <CardContent className="p-6 flex justify-between items-start">
-            <div>
-              <p className="text-sm opacity-70">Valor de compra</p>
-              <p className="text-2xl font-bold mt-1">
-                {asset.totalValue ? formatCurrency(Number(asset.totalValue)) : '—'}
-              </p>
-              {asset.acquisitionDate && (
-                <p className="text-xs opacity-60 mt-1">Desde {formatDate(asset.acquisitionDate)}</p>
-              )}
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <p className="text-sm opacity-70">Valor de compra</p>
+                <p className="text-2xl font-bold mt-1">
+                  {asset.totalValue ? formatCurrency(Number(asset.totalValue)) : '—'}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm opacity-70">Total investido</p>
+                <p className="text-xl font-bold mt-1">{formatCurrency(totalInvested)}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm opacity-70">Total investido</p>
-              <p className="text-xl font-bold mt-1">{formatCurrency(totalInvested)}</p>
-            </div>
+            {asset.acquisitionDate && (
+              <p className="text-xs opacity-60">Desde {formatDate(asset.acquisitionDate)}</p>
+            )}
+            {asset.description && (
+              <p className="text-xs opacity-60 mt-1">Financiadora: {asset.description}</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -107,7 +157,7 @@ export default function AssetOverviewPage() {
       <div className="px-4 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-base">Contas</h2>
-          <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+          <Button size="sm" variant="outline" onClick={() => setCatDialogOpen(true)}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Nova conta
           </Button>
@@ -125,7 +175,7 @@ export default function AssetOverviewPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    if (confirm(`Apagar conta "${cat.name}"?`)) deleteCategory.mutate(cat.id)
+                    deleteCategory.mutate(cat.id)
                   }}
                   className="text-muted-foreground hover:text-destructive p-1 flex-shrink-0"
                 >
@@ -148,7 +198,7 @@ export default function AssetOverviewPage() {
           )}
           {(!categories || categories.length === 0) && categoryTotals['__outros__'] === undefined && (
             <button
-              onClick={() => setDialogOpen(true)}
+              onClick={() => setCatDialogOpen(true)}
               className="w-full rounded-xl border border-dashed p-6 text-center text-muted-foreground text-sm hover:bg-accent transition-colors"
             >
               Crie contas para organizar seus registros financeiros
@@ -176,54 +226,84 @@ export default function AssetOverviewPage() {
         </div>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* Nova Conta Dialog */}
+      <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Conta</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Nova Conta</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
               <Label>Nome</Label>
-              <Input
-                placeholder="Ex: Financiamento, Manutenção..."
-                value={catName}
-                onChange={(e) => setCatName(e.target.value)}
-              />
+              <Input placeholder="Ex: Financiamento, Manutenção..." value={catName} onChange={(e) => setCatName(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Cor</Label>
               <div className="flex gap-2 flex-wrap">
                 {PRESET_COLORS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setCatColor(color)}
-                    className={cn(
-                      'h-8 w-8 rounded-full transition-all',
-                      catColor === color ? 'ring-2 ring-offset-2 ring-foreground scale-110' : ''
-                    )}
+                  <button key={color} type="button" onClick={() => setCatColor(color)}
+                    className={cn('h-8 w-8 rounded-full transition-all', catColor === color ? 'ring-2 ring-offset-2 ring-foreground scale-110' : '')}
                     style={{ backgroundColor: color }}
                   />
                 ))}
               </div>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1"
-                onClick={() => { setCatName(''); setCatColor(PRESET_COLORS[0]); setDialogOpen(false) }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={!catName.trim() || createCategory.isPending}
-                onClick={handleCreateCategory}
-              >
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { setCatName(''); setCatDialogOpen(false) }}>Cancelar</Button>
+              <Button className="flex-1" disabled={!catName.trim() || createCategory.isPending} onClick={handleCreateCategory}>
                 {createCategory.isPending ? 'Criando...' : 'Criar'}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar Patrimônio Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Patrimônio</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={editType} onValueChange={setEditType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {ASSET_TYPE_KEYS.map((key) => (
+                    <SelectItem key={key} value={key}>{ASSET_TYPE_LABELS[key]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor de compra (R$)</Label>
+              <Input type="number" step="0.01" value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Data da compra</Label>
+              <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" disabled={updateAsset.isPending} onClick={handleEditSave}>
+                {updateAsset.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar exclusão Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Apagar patrimônio?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Isso apagará <strong>{asset.name}</strong> e todos os registros, contas e arquivos vinculados. Essa ação não pode ser desfeita.</p>
+          <div className="flex gap-2 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" className="flex-1" disabled={deleteAsset.isPending} onClick={handleDelete}>
+              {deleteAsset.isPending ? 'Apagando...' : 'Apagar'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

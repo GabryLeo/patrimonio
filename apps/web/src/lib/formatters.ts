@@ -10,7 +10,9 @@ export function formatCurrency(value: number): string {
 
 export function formatDate(dateStr: string, pattern = 'dd/MM/yyyy'): string {
   try {
-    return format(parseISO(dateStr), pattern, { locale: ptBR })
+    // Date-only strings (YYYY-MM-DD) get noon UTC to prevent timezone day shift
+    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr + 'T12:00:00' : dateStr
+    return format(parseISO(normalized), pattern, { locale: ptBR })
   } catch {
     return dateStr
   }
@@ -18,7 +20,8 @@ export function formatDate(dateStr: string, pattern = 'dd/MM/yyyy'): string {
 
 export function formatMonth(dateStr: string): string {
   try {
-    return format(parseISO(dateStr), 'MMMM yyyy', { locale: ptBR })
+    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr + 'T12:00:00' : dateStr
+    return format(parseISO(normalized), 'MMMM yyyy', { locale: ptBR })
   } catch {
     return dateStr
   }

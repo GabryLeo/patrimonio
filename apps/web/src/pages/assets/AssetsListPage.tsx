@@ -66,7 +66,9 @@ export default function AssetsListPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Patrimônios</h1>
-          <p className="text-muted-foreground text-sm">{assets?.length ?? 0} bens cadastrados</p>
+          <p className="text-muted-foreground text-sm">
+            {isLoading ? 'Carregando...' : `${assets?.length ?? 0} bens cadastrados`}
+          </p>
         </div>
         <Button size="sm" onClick={() => setOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />

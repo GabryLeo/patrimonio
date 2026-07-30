@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { DollarSign, Star, CheckSquare } from 'lucide-react'
+import { DollarSign, Star, FileUp } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUIStore } from '@/store/uiStore'
 
@@ -14,16 +14,16 @@ const addOptions = [
   {
     icon: Star,
     label: 'Memória',
-    description: 'Momentos especiais com fotos',
+    description: 'Momentos especiais',
     color: 'bg-yellow-100 text-yellow-700',
     sub: 'timeline',
   },
   {
-    icon: CheckSquare,
-    label: 'Checklist',
-    description: 'Lista de tarefas',
-    color: 'bg-orange-100 text-orange-700',
-    sub: '',
+    icon: FileUp,
+    label: 'Arquivo',
+    description: 'Foto, documento, contrato...',
+    color: 'bg-blue-100 text-blue-700',
+    sub: 'documents',
   },
 ]
 

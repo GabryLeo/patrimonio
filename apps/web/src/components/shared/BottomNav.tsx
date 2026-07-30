@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Home, LayoutGrid, Plus, FolderOpen, MoreHorizontal } from 'lucide-react'
+import { Home, LayoutGrid, Plus, MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useUIStore } from '@/store/uiStore'
 
 const navItems = [
   { to: '/', icon: Home, label: 'Início', exact: true },
   { to: '/assets', icon: LayoutGrid, label: 'Patrimônios' },
-  { to: '/files', icon: FolderOpen, label: 'Arquivos' },
   { to: '/more', icon: MoreHorizontal, label: 'Mais' },
 ]
 
@@ -16,7 +15,7 @@ export function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-around px-2 max-w-lg mx-auto">
-        {navItems.slice(0, 2).map((item) => (
+        {navItems.slice(0, 1).map((item) => (
           <NavItem key={item.to} {...item} />
         ))}
 
@@ -28,7 +27,7 @@ export function BottomNav() {
           <Plus className="h-6 w-6" />
         </button>
 
-        {navItems.slice(2).map((item) => (
+        {navItems.slice(1).map((item) => (
           <NavItem key={item.to} {...item} />
         ))}
       </div>
