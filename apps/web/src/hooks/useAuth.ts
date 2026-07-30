@@ -18,7 +18,6 @@ export function useMe() {
 
 export function useLogin() {
   const setUser = useAuthStore((s) => s.setUser)
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: LoginInput) => {
       const { data } = await api.post('/auth/login', input)
@@ -26,7 +25,6 @@ export function useLogin() {
     },
     onSuccess: (data) => {
       setUser(data.user)
-      queryClient.invalidateQueries({ queryKey: ['me'] })
     },
   })
 }
