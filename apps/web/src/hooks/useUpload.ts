@@ -7,30 +7,34 @@ interface UploadOptions {
   memoryId?: string
 }
 
-export function useUpload(options: UploadOptions = {}) {
+interface UploadArgs {
+  file: File
+  options?: UploadOptions
+}
+
+export function useUpload(defaultOptions: UploadOptions = {}) {
   return useMutation({
-    mutationFn: async (file: File) => {
-      // 1. Get presigned URL
+    mutationFn: async ({ file, options = {} }: UploadArgs) => {
+      const merged = { ...defaultOptions, ...options }
+
       const { data: presign } = await api.post('/upload/presign', {
         filename: file.name,
         mimeType: file.type,
         size: file.size,
       })
 
-      // 2. Upload directly to Supabase
       await fetch(presign.uploadUrl, {
         method: 'PUT',
         body: file,
         headers: { 'Content-Type': file.type },
       })
 
-      // 3. Confirm upload
       const { data: confirm } = await api.post('/upload/confirm', {
         url: presign.publicUrl,
         name: file.name,
         size: file.size,
         mimeType: file.type,
-        ...options,
+        ...merged,
       })
 
       return confirm.attachment

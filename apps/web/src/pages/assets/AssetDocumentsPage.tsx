@@ -38,7 +38,7 @@ export default function AssetDocumentsPage() {
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    await upload.mutateAsync(file)
+    await upload.mutateAsync({ file })
     qc.invalidateQueries({ queryKey: ['documents', id] })
     qc.invalidateQueries({ queryKey: ['photos', id] })
     e.target.value = ''

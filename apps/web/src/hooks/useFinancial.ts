@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/apiClient'
-import type { CreateFinancialRecordInput } from '@patrimonio/shared'
+import type { CreateFinancialRecordInput, UpdateFinancialRecordInput } from '@patrimonio/shared'
 
 export function useFinancial(assetId: string) {
   return useQuery({
@@ -28,6 +28,21 @@ export function useCreateFinancial(assetId: string) {
   })
 }
 
+export function useUpdateFinancial(assetId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateFinancialRecordInput }) => {
+      const { data: res } = await api.put(`/assets/${assetId}/financial/${id}`, data)
+      return res.record
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['financial', assetId] })
+      qc.invalidateQueries({ queryKey: ['timeline', assetId] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+  })
+}
+
 export function useDeleteFinancial(assetId: string) {
   const qc = useQueryClient()
   return useMutation({
@@ -37,6 +52,7 @@ export function useDeleteFinancial(assetId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['financial', assetId] })
       qc.invalidateQueries({ queryKey: ['timeline', assetId] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }
