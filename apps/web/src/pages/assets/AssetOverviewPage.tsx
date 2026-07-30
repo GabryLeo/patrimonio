@@ -1,12 +1,21 @@
+import { useState } from 'react'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
-import { ArrowLeft, DollarSign, Clock, FileText } from 'lucide-react'
+import { ArrowLeft, DollarSign, Clock, FileText, Plus, Trash2 } from 'lucide-react'
 import { useAsset } from '@/hooks/useAssets'
 import { useFinancial } from '@/hooks/useFinancial'
+import { useCategories, useCreateCategory, useDeleteCategory } from '@/hooks/useCategories'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { ASSET_TYPE_LABELS } from '@patrimonio/shared'
+import { cn } from '@/lib/cn'
+
+const PRESET_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280']
 
 const tabs = [
   { label: 'Financeiro', path: 'financial', icon: DollarSign },
@@ -19,8 +28,29 @@ export default function AssetOverviewPage() {
   const navigate = useNavigate()
   const { data: asset, isLoading } = useAsset(id!)
   const { data: records } = useFinancial(id!)
+  const { data: categories } = useCategories(id!)
+  const createCategory = useCreateCategory(id!)
+  const deleteCategory = useDeleteCategory(id!)
+
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [catName, setCatName] = useState('')
+  const [catColor, setCatColor] = useState(PRESET_COLORS[0])
 
   const totalInvested = records?.reduce((sum: number, r: any) => sum + Number(r.amount), 0) ?? 0
+
+  const categoryTotals = records?.reduce((acc: Record<string, number>, r: any) => {
+    const key = r.categoryId ?? '__outros__'
+    acc[key] = (acc[key] ?? 0) + Number(r.amount)
+    return acc
+  }, {}) ?? {}
+
+  async function handleCreateCategory() {
+    if (!catName.trim()) return
+    await createCategory.mutateAsync({ name: catName.trim(), color: catColor })
+    setCatName('')
+    setCatColor(PRESET_COLORS[0])
+    setDialogOpen(false)
+  }
 
   if (isLoading) {
     return (
@@ -36,7 +66,6 @@ export default function AssetOverviewPage() {
 
   return (
     <div className="pb-6">
-      {/* Header */}
       <div className="px-4 pt-6 mb-4">
         <button onClick={() => navigate('/assets')} className="flex items-center gap-2 text-muted-foreground text-sm mb-4">
           <ArrowLeft className="h-4 w-4" />
@@ -45,7 +74,9 @@ export default function AssetOverviewPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold">{asset.name}</h1>
-            <p className="text-muted-foreground text-sm">{ASSET_TYPE_LABELS[asset.type as keyof typeof ASSET_TYPE_LABELS]}</p>
+            <Badge variant="outline" className="mt-1">
+              {ASSET_TYPE_LABELS[asset.type as keyof typeof ASSET_TYPE_LABELS]}
+            </Badge>
           </div>
           <Badge variant={asset.status === 'ACTIVE' ? 'default' : 'secondary'}>
             {asset.status === 'ACTIVE' ? 'Ativo' : asset.status === 'SOLD' ? 'Vendido' : 'Arquivado'}
@@ -53,43 +84,80 @@ export default function AssetOverviewPage() {
         </div>
       </div>
 
-      {/* Cover / Stats */}
-      <div className="px-4">
-        <Card className="border-0 bg-primary text-primary-foreground mb-4">
-          <CardContent className="p-6">
-            <p className="text-sm opacity-70 mb-1">Total Investido</p>
-            <p className="text-3xl font-bold">{formatCurrency(totalInvested)}</p>
-            {asset.acquisitionDate && (
-              <p className="text-sm opacity-60 mt-2">Desde {formatDate(asset.acquisitionDate)}</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="px-4 grid grid-cols-3 gap-2 mb-6">
-        <Card>
-          <CardContent className="p-3 text-center">
-            <p className="text-lg font-bold">{records?.length ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Registros</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <p className="text-lg font-bold">{asset.categories?.length ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Categorias</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <p className="text-lg font-bold">{(asset as any)._count?.attachments ?? 0}</p>
-            <p className="text-xs text-muted-foreground">Arquivos</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Navigation Tabs */}
       <div className="px-4 mb-6">
+        <Card className="border-0 bg-primary text-primary-foreground">
+          <CardContent className="p-6 flex justify-between items-start">
+            <div>
+              <p className="text-sm opacity-70">Valor de compra</p>
+              <p className="text-2xl font-bold mt-1">
+                {asset.totalValue ? formatCurrency(Number(asset.totalValue)) : '—'}
+              </p>
+              {asset.acquisitionDate && (
+                <p className="text-xs opacity-60 mt-1">Desde {formatDate(asset.acquisitionDate)}</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-sm opacity-70">Total investido</p>
+              <p className="text-xl font-bold mt-1">{formatCurrency(totalInvested)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="px-4 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-base">Contas</h2>
+          <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Nova conta
+          </Button>
+        </div>
+        <div className="space-y-2">
+          {categories?.map((cat: any) => (
+            <Card key={cat.id} className="hover:shadow-sm transition-shadow">
+              <CardContent
+                className="p-4 flex items-center gap-3 cursor-pointer"
+                onClick={() => navigate(`/assets/${id}/financial`)}
+              >
+                <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                <p className="flex-1 font-medium text-sm">{cat.name}</p>
+                <p className="font-bold text-sm">{formatCurrency(categoryTotals[cat.id] ?? 0)}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirm(`Apagar conta "${cat.name}"?`)) deleteCategory.mutate(cat.id)
+                  }}
+                  className="text-muted-foreground hover:text-destructive p-1 flex-shrink-0"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </CardContent>
+            </Card>
+          ))}
+          {categoryTotals['__outros__'] !== undefined && (
+            <Card className="hover:shadow-sm transition-shadow">
+              <CardContent
+                className="p-4 flex items-center gap-3 cursor-pointer"
+                onClick={() => navigate(`/assets/${id}/financial`)}
+              >
+                <div className="h-3 w-3 rounded-full bg-muted-foreground/40 flex-shrink-0" />
+                <p className="flex-1 font-medium text-sm text-muted-foreground">Outros</p>
+                <p className="font-bold text-sm">{formatCurrency(categoryTotals['__outros__'])}</p>
+              </CardContent>
+            </Card>
+          )}
+          {(!categories || categories.length === 0) && categoryTotals['__outros__'] === undefined && (
+            <button
+              onClick={() => setDialogOpen(true)}
+              className="w-full rounded-xl border border-dashed p-6 text-center text-muted-foreground text-sm hover:bg-accent transition-colors"
+            >
+              Crie contas para organizar seus registros financeiros
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4">
         <div className="flex gap-2 p-1 bg-secondary rounded-xl">
           {tabs.map((tab) => (
             <NavLink
@@ -108,36 +176,57 @@ export default function AssetOverviewPage() {
         </div>
       </div>
 
-      {/* Recent Records */}
-      <div className="px-4">
-        <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Últimos Registros</h3>
-        <div className="space-y-2">
-          {records?.slice(0, 5).map((record: any) => (
-            <Card key={record.id}>
-              <CardContent className="p-4 flex items-center gap-3">
-                {record.category && (
-                  <div
-                    className="h-3 w-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: record.category.color }}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Conta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                placeholder="Ex: Financiamento, Manutenção..."
+                value={catName}
+                onChange={(e) => setCatName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Cor</Label>
+              <div className="flex gap-2 flex-wrap">
+                {PRESET_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setCatColor(color)}
+                    className={cn(
+                      'h-8 w-8 rounded-full transition-all',
+                      catColor === color ? 'ring-2 ring-offset-2 ring-foreground scale-110' : ''
+                    )}
+                    style={{ backgroundColor: color }}
                   />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{record.title}</p>
-                  <p className="text-xs text-muted-foreground">{formatDate(record.eventDate)}</p>
-                </div>
-                <p className="font-semibold text-sm">{formatCurrency(Number(record.amount))}</p>
-              </CardContent>
-            </Card>
-          ))}
-          {(!records || records.length === 0) && (
-            <Card className="border-dashed">
-              <CardContent className="p-6 text-center text-muted-foreground text-sm">
-                Nenhum registro ainda
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => { setCatName(''); setCatColor(PRESET_COLORS[0]); setDialogOpen(false) }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                disabled={!catName.trim() || createCategory.isPending}
+                onClick={handleCreateCategory}
+              >
+                {createCategory.isPending ? 'Criando...' : 'Criar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

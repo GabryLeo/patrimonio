@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Building2, Car, MapPin, Anchor } from 'lucide-react'
 import { useAssets, useCreateAsset } from '@/hooks/useAssets'
+import { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,9 +14,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ASSET_TYPE_LABELS } from '@patrimonio/shared'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CreateAssetSchema, type CreateAssetInput } from '@patrimonio/shared'
+import type { CreateAssetInput } from '@patrimonio/shared'
 
 const assetTypes = Object.entries(ASSET_TYPE_LABELS) as [string, string][]
+
+const FormSchema = z.object({
+  name: z.string().min(1, 'Nome obrigatório').max(100),
+  type: z.enum(['APARTMENT', 'HOUSE', 'CAR', 'LAND', 'COMMERCIAL', 'MOTORCYCLE', 'BOAT', 'OTHER'], {
+    required_error: 'Tipo obrigatório',
+  }),
+  totalValue: z
+    .number({ required_error: 'Valor obrigatório', invalid_type_error: 'Informe um valor válido' })
+    .min(0.01, 'Valor mínimo R$ 0,01'),
+  acquisitionDate: z.string().optional(),
+  isFinanced: z.boolean().optional(),
+  financingBank: z.string().max(200).optional(),
+})
+
+type FormValues = z.infer<typeof FormSchema>
 
 export default function AssetsListPage() {
   const navigate = useNavigate()
@@ -23,13 +39,20 @@ export default function AssetsListPage() {
   const createAsset = useCreateAsset()
   const [open, setOpen] = useState(false)
 
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<CreateAssetInput>({
-    resolver: zodResolver(CreateAssetSchema),
+  const { register, handleSubmit, setValue, reset, watch, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(FormSchema),
   })
 
-  async function onSubmit(data: CreateAssetInput) {
+  const isFinancedValue = watch('isFinanced')
+
+  async function onSubmit(data: FormValues) {
     try {
-      const asset = await createAsset.mutateAsync(data)
+      const { isFinanced, financingBank, ...rest } = data
+      const payload: CreateAssetInput = {
+        ...rest,
+        description: isFinanced && financingBank ? financingBank : undefined,
+      }
+      const asset = await createAsset.mutateAsync(payload)
       reset()
       setOpen(false)
       navigate(`/assets/${asset.id}`)
@@ -67,7 +90,7 @@ export default function AssetsListPage() {
                   <div className="flex-1 text-left">
                     <p className="font-semibold">{asset.name}</p>
                     <p className="text-sm text-muted-foreground">{ASSET_TYPE_LABELS[asset.type as keyof typeof ASSET_TYPE_LABELS]}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{asset.categories?.length ?? 0} categorias</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{asset.categories?.length ?? 0} contas</p>
                   </div>
                   <div className="text-right">
                     <div className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-50 text-green-700">
@@ -116,19 +139,37 @@ export default function AssetsListPage() {
               {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Valor Total (opcional)</Label>
+              <Label>Valor de compra (R$)</Label>
               <Input
                 type="number"
                 placeholder="0,00"
                 step="0.01"
-                min="0"
-                {...register('totalValue', {
-                  setValueAs: (v) => (v === '' || v === null) ? undefined : parseFloat(v),
-                })}
+                min="0.01"
+                {...register('totalValue', { valueAsNumber: true })}
               />
+              {errors.totalValue && <p className="text-xs text-destructive">{errors.totalValue.message}</p>}
             </div>
+            <div className="space-y-2">
+              <Label>Data da compra</Label>
+              <Input type="date" {...register('acquisitionDate')} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="isFinanced"
+                className="h-4 w-4 rounded border-border"
+                {...register('isFinanced')}
+              />
+              <Label htmlFor="isFinanced">É financiado?</Label>
+            </div>
+            {isFinancedValue && (
+              <div className="space-y-2">
+                <Label>Banco / Financiadora</Label>
+                <Input placeholder="Ex: Bradesco, Caixa Econômica..." {...register('financingBank')} />
+              </div>
+            )}
             <div className="flex gap-2 pt-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="button" variant="outline" className="flex-1" onClick={() => { reset(); setOpen(false) }}>Cancelar</Button>
               <Button type="submit" className="flex-1" disabled={createAsset.isPending}>
                 {createAsset.isPending ? 'Criando...' : 'Criar'}
               </Button>

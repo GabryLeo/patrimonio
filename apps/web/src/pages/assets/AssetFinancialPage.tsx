@@ -82,6 +82,7 @@ export default function AssetFinancialPage() {
   }
 
   const total = records?.reduce((sum: number, r: any) => sum + Number(r.amount), 0) ?? 0
+  const hasCategories = (asset?.categories?.length ?? 0) > 0
 
   return (
     <div className="px-4 pt-6 pb-6">
@@ -169,23 +170,30 @@ export default function AssetFinancialPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
             <div className="space-y-2">
-              <Label>Categoria</Label>
+              <Label>Conta</Label>
               <Select
-                defaultValue={editingRecord?.categoryId}
-                onValueChange={(v) => setValue('categoryId', v)}
+                defaultValue={editingRecord?.categoryId ?? '__none__'}
+                onValueChange={(v) => setValue('categoryId', v === '__none__' ? undefined : v)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
+                  <SelectValue placeholder="Sem categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {asset?.categories?.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
-                        {cat.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="__none__">Sem categoria</SelectItem>
+                  {!hasCategories ? (
+                    <p className="px-2 py-3 text-xs text-muted-foreground text-center">
+                      Crie uma conta primeiro na página do patrimônio
+                    </p>
+                  ) : (
+                    asset?.categories?.map((cat: any) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                          {cat.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
