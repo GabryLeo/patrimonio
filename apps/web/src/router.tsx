@@ -1,27 +1,29 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
-import { useAuthStore } from './store/authStore'
 import { AppLayout } from './components/shared/AppLayout'
-import LoginPage from './pages/auth/LoginPage'
-import DashboardPage from './pages/dashboard/DashboardPage'
+import AssetDocumentsPage from './pages/assets/AssetDocumentsPage'
+import AssetFinancialPage from './pages/assets/AssetFinancialPage'
 import AssetsListPage from './pages/assets/AssetsListPage'
 import AssetOverviewPage from './pages/assets/AssetOverviewPage'
-import AssetFinancialPage from './pages/assets/AssetFinancialPage'
 import AssetTimelinePage from './pages/assets/AssetTimelinePage'
-import AssetDocumentsPage from './pages/assets/AssetDocumentsPage'
+import LoginPage from './pages/auth/LoginPage'
+import DashboardPage from './pages/dashboard/DashboardPage'
+import FilesPage from './pages/files/FilesPage'
 import MorePage from './pages/more/MorePage'
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
-      <p className="text-4xl mb-4">🚧</p>
-      <h2 className="text-xl font-bold mb-2">{label}</h2>
-      <p className="text-muted-foreground text-sm">Em breve</p>
-    </div>
-  )
-}
+import TimelinePage from './pages/timeline/TimelinePage'
+import { useAuthStore } from './store/authStore'
 
 function ProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const authChecked = useAuthStore((s) => s.authChecked)
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        Carregando...
+      </div>
+    )
+  }
+
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <Outlet />
 }
@@ -43,7 +45,8 @@ export const router = createBrowserRouter([
           { path: '/assets/:id/financial', element: <AssetFinancialPage /> },
           { path: '/assets/:id/timeline', element: <AssetTimelinePage /> },
           { path: '/assets/:id/documents', element: <AssetDocumentsPage /> },
-          { path: '/files', element: <ComingSoon label="Arquivos" /> },
+          { path: '/timeline', element: <TimelinePage /> },
+          { path: '/files', element: <FilesPage /> },
           { path: '/more', element: <MorePage /> },
         ],
       },

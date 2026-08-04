@@ -10,3 +10,23 @@ export function useDashboard() {
     },
   })
 }
+
+export function useGlobalTimeline() {
+  return useQuery({
+    queryKey: ['dashboard', 'timeline'],
+    queryFn: async () => {
+      const { data } = await api.get('/dashboard/timeline')
+      return data
+    },
+  })
+}
+
+export function useGlobalFiles() {
+  return useQuery({
+    queryKey: ['dashboard', 'files'],
+    queryFn: async () => {
+      const { data } = await api.get('/dashboard/files')
+      return data
+    },
+  })
+}

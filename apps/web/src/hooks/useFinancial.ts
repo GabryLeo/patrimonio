@@ -24,6 +24,7 @@ export function useCreateFinancial(assetId: string) {
       qc.invalidateQueries({ queryKey: ['financial', assetId] })
       qc.invalidateQueries({ queryKey: ['timeline', assetId] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
     },
   })
 }
@@ -39,6 +40,7 @@ export function useUpdateFinancial(assetId: string) {
       qc.invalidateQueries({ queryKey: ['financial', assetId] })
       qc.invalidateQueries({ queryKey: ['timeline', assetId] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
     },
   })
 }
@@ -53,6 +55,7 @@ export function useDeleteFinancial(assetId: string) {
       qc.invalidateQueries({ queryKey: ['financial', assetId] })
       qc.invalidateQueries({ queryKey: ['timeline', assetId] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
     },
   })
 }

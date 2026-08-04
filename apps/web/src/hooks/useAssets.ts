@@ -30,7 +30,11 @@ export function useCreateAsset() {
       const { data } = await api.post('/assets', input)
       return data.asset
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['assets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assets'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
+    },
   })
 }
 
@@ -44,6 +48,8 @@ export function useUpdateAsset(id: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['assets'] })
       qc.invalidateQueries({ queryKey: ['assets', id] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
     },
   })
 }
@@ -55,6 +61,11 @@ export function useDeleteAsset() {
       await api.delete(`/assets/${id}`)
       return id
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['assets'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assets'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
+      qc.invalidateQueries({ queryKey: ['dashboard', 'files'] })
+    },
   })
 }

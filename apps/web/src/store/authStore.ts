@@ -5,7 +5,11 @@ import type { User } from '@patrimonio/shared'
 interface AuthState {
   user: User | null
   isAuthenticated: boolean
+  hasHydrated: boolean
+  authChecked: boolean
   setUser: (user: User | null) => void
+  setAuthChecked: (checked: boolean) => void
+  setHasHydrated: (hydrated: boolean) => void
   logout: () => void
 }
 
@@ -14,9 +18,22 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      hasHydrated: false,
+      authChecked: false,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
-      logout: () => set({ user: null, isAuthenticated: false }),
+      setAuthChecked: (authChecked) => set({ authChecked }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
+      logout: () => set({ user: null, isAuthenticated: false, authChecked: true }),
     }),
-    { name: 'patrimonio-auth' }
+    {
+      name: 'patrimonio-auth',
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
+    }
   )
 )

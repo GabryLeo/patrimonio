@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/apiClient'
 
 interface UploadOptions {
@@ -13,6 +13,8 @@ interface UploadArgs {
 }
 
 export function useUpload(defaultOptions: UploadOptions = {}) {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: async ({ file, options = {} }: UploadArgs) => {
       const merged = { ...defaultOptions, ...options }
@@ -38,6 +40,19 @@ export function useUpload(defaultOptions: UploadOptions = {}) {
       })
 
       return confirm.attachment
+    },
+    onSuccess: (_, variables) => {
+      const assetId = variables.options?.assetId ?? defaultOptions.assetId
+
+      if (assetId) {
+        queryClient.invalidateQueries({ queryKey: ['documents', assetId] })
+        queryClient.invalidateQueries({ queryKey: ['photos', assetId] })
+        queryClient.invalidateQueries({ queryKey: ['timeline', assetId] })
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'timeline'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'files'] })
     },
   })
 }
