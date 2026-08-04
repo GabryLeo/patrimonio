@@ -1,8 +1,10 @@
 import { prisma } from '../db/client'
+import { getSharedAssetWhere } from '../lib/sharing'
 
-export async function generateAssetReport(assetId: string, userId: string): Promise<Buffer> {
+export async function generateAssetReport(assetId: string, _userId: string): Promise<Buffer> {
+  const sharedWhere = await getSharedAssetWhere()
   const asset = await prisma.asset.findFirst({
-    where: { id: assetId, userId },
+    where: { id: assetId, ...sharedWhere },
     include: {
       categories: true,
       financials: {

@@ -1,18 +1,20 @@
 import { prisma } from '../db/client'
 import type { CreateFinancialRecordInput, UpdateFinancialRecordInput } from '@patrimonio/shared'
+import { getSharedAssetWhere } from '../lib/sharing'
 
 const INCLUDE_FULL = {
   category: true,
   attachments: { orderBy: { createdAt: 'asc' as const } },
 }
 
-async function assertAssetOwnership(assetId: string, userId: string) {
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, userId } })
+async function assertAssetOwnership(assetId: string) {
+  const sharedWhere = await getSharedAssetWhere()
+  const asset = await prisma.asset.findFirst({ where: { id: assetId, ...sharedWhere } })
   if (!asset) throw new Error('Patrimônio não encontrado')
 }
 
-export async function listFinancial(assetId: string, userId: string) {
-  await assertAssetOwnership(assetId, userId)
+export async function listFinancial(assetId: string, _userId: string) {
+  await assertAssetOwnership(assetId)
   return prisma.financialRecord.findMany({
     where: { assetId },
     include: INCLUDE_FULL,
@@ -20,8 +22,8 @@ export async function listFinancial(assetId: string, userId: string) {
   })
 }
 
-export async function createFinancial(assetId: string, userId: string, data: CreateFinancialRecordInput) {
-  await assertAssetOwnership(assetId, userId)
+export async function createFinancial(assetId: string, _userId: string, data: CreateFinancialRecordInput) {
+  await assertAssetOwnership(assetId)
   return prisma.financialRecord.create({
     data: {
       assetId,
@@ -35,8 +37,8 @@ export async function createFinancial(assetId: string, userId: string, data: Cre
   })
 }
 
-export async function getFinancial(id: string, assetId: string, userId: string) {
-  await assertAssetOwnership(assetId, userId)
+export async function getFinancial(id: string, assetId: string, _userId: string) {
+  await assertAssetOwnership(assetId)
   const record = await prisma.financialRecord.findFirst({
     where: { id, assetId },
     include: INCLUDE_FULL,

@@ -1,7 +1,9 @@
 import { prisma } from '../db/client'
+import { getSharedAssetWhere } from '../lib/sharing'
 
-export async function getTimeline(assetId: string, userId: string) {
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, userId } })
+export async function getTimeline(assetId: string, _userId: string) {
+  const sharedWhere = await getSharedAssetWhere()
+  const asset = await prisma.asset.findFirst({ where: { id: assetId, ...sharedWhere } })
   if (!asset) throw new Error('Patrimônio não encontrado')
 
   const [financials, memories] = await Promise.all([

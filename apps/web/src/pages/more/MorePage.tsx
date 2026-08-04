@@ -12,6 +12,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 
+function normalizeEmail(email: string) {
+  const normalized = email.trim().toLowerCase()
+  return normalized === 'byelalves@yaho.com.br' ? 'byelalves@yahoo.com.br' : normalized
+}
+
 const moreItems = [
   { title: 'Perfil', description: 'Dados da conta e acesso atual', icon: ShieldCheck },
   { title: 'Exportação', description: 'Preparar saída de dados e relatórios', icon: Download },
@@ -27,6 +32,7 @@ export default function MorePage() {
   const logout = useLogout()
   const currentUser = useAuthStore((s) => s.user)
   const [open, setOpen] = useState(false)
+  const currentUserEmail = currentUser?.email ? normalizeEmail(currentUser.email) : null
 
   const {
     register,
@@ -114,7 +120,7 @@ export default function MorePage() {
                   <p className="truncate text-sm font-semibold">{user.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
-                {user.id !== currentUser?.id ? (
+                {normalizeEmail(user.email) !== currentUserEmail ? (
                   <button onClick={() => deleteUser.mutate(user.id)} className="text-xs font-medium text-destructive">
                     Remover
                   </button>

@@ -1,16 +1,16 @@
 import type { Request, Response, NextFunction } from 'express'
 import { prisma } from '../db/client'
-import type { AuthRequest } from '../middleware/auth.middleware'
+import { getSharedAssetWhere } from '../lib/sharing'
 
-async function assertOwnership(assetId: string, userId: string) {
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, userId } })
+async function assertOwnership(assetId: string) {
+  const sharedWhere = await getSharedAssetWhere()
+  const asset = await prisma.asset.findFirst({ where: { id: assetId, ...sharedWhere } })
   if (!asset) throw new Error('Patrimônio não encontrado')
 }
 
 export async function getDocuments(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { userId } = req as AuthRequest
-    await assertOwnership(req.params.assetId, userId)
+    await assertOwnership(req.params.assetId)
     const attachments = await prisma.attachment.findMany({
       where: {
         OR: [
@@ -28,8 +28,7 @@ export async function getDocuments(req: Request, res: Response, next: NextFuncti
 
 export async function getPhotos(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { userId } = req as AuthRequest
-    await assertOwnership(req.params.assetId, userId)
+    await assertOwnership(req.params.assetId)
     const attachments = await prisma.attachment.findMany({
       where: {
         OR: [

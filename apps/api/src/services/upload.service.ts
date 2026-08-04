@@ -2,6 +2,7 @@ import { supabase, BUCKET } from '../lib/supabase'
 import { prisma } from '../db/client'
 import { getMimeType } from '@patrimonio/shared'
 import { randomUUID } from 'crypto'
+import { getSharedUserIds } from '../lib/sharing'
 
 export async function getPresignedUrl(filename: string, mimeType: string) {
   const ext = filename.split('.').pop() ?? 'bin'
@@ -46,7 +47,7 @@ export async function confirmUpload(data: {
   })
 }
 
-export async function deleteFile(fileId: string, userId: string) {
+export async function deleteFile(fileId: string, _userId: string) {
   const attachment = await prisma.attachment.findUnique({
     where: { id: fileId },
     include: {
@@ -63,7 +64,8 @@ export async function deleteFile(fileId: string, userId: string) {
     attachment.financialRecord?.asset?.userId ??
     attachment.memory?.asset?.userId
 
-  if (ownerUserId !== userId) throw new Error('Sem permissão')
+  const sharedUserIds = await getSharedUserIds()
+  if (!ownerUserId || !sharedUserIds.includes(ownerUserId)) throw new Error('Sem permissão')
 
   const path = attachment.url.split(`${BUCKET}/`)[1]
   if (path) {

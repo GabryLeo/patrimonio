@@ -1,7 +1,9 @@
 import { prisma } from '../db/client'
 import { endOfMonth, endOfYear, format, startOfMonth, startOfYear } from 'date-fns'
+import { getSharedUserIds } from '../lib/sharing'
 
-export async function getDashboardSummary(userId: string) {
+export async function getDashboardSummary(_userId: string) {
+  const sharedUserIds = await getSharedUserIds()
   const now = new Date()
   const monthStart = startOfMonth(now)
   const monthEnd = endOfMonth(now)
@@ -10,7 +12,7 @@ export async function getDashboardSummary(userId: string) {
 
   const [assets, monthlyRecords, yearlyRecords, recentRecords, recentMemories, recentAttachments] = await Promise.all([
     prisma.asset.findMany({
-      where: { userId, status: 'ACTIVE' },
+      where: { userId: { in: sharedUserIds }, status: 'ACTIVE' },
       include: {
         financials: { select: { amount: true } },
         _count: { select: { financials: true, attachments: true } },
@@ -18,14 +20,14 @@ export async function getDashboardSummary(userId: string) {
     }),
     prisma.financialRecord.findMany({
       where: {
-        asset: { userId },
+        asset: { userId: { in: sharedUserIds } },
         eventDate: { gte: monthStart, lte: monthEnd },
       },
       include: { category: true },
     }),
     prisma.financialRecord.findMany({
       where: {
-        asset: { userId },
+        asset: { userId: { in: sharedUserIds } },
         eventDate: { gte: yearStart, lte: yearEnd },
       },
       include: {
@@ -35,13 +37,13 @@ export async function getDashboardSummary(userId: string) {
       orderBy: { eventDate: 'asc' },
     }),
     prisma.financialRecord.findMany({
-      where: { asset: { userId } },
+      where: { asset: { userId: { in: sharedUserIds } } },
       include: { category: true, asset: { select: { name: true, type: true } } },
       orderBy: { eventDate: 'desc' },
       take: 5,
     }),
     prisma.memory.findMany({
-      where: { asset: { userId } },
+      where: { asset: { userId: { in: sharedUserIds } } },
       include: {
         asset: { select: { id: true, name: true, type: true } },
         attachments: true,
@@ -50,7 +52,7 @@ export async function getDashboardSummary(userId: string) {
       take: 5,
     }),
     prisma.attachment.findMany({
-      where: { asset: { userId } },
+      where: { asset: { userId: { in: sharedUserIds } } },
       orderBy: { createdAt: 'desc' },
       take: 5,
     }),
@@ -101,7 +103,7 @@ export async function getDashboardSummary(userId: string) {
 
   const nextPayments = await prisma.financialRecord.findMany({
     where: {
-      asset: { userId },
+      asset: { userId: { in: sharedUserIds } },
       eventDate: { gte: now },
     },
     include: { category: true, asset: { select: { name: true } } },
@@ -142,10 +144,11 @@ export async function getDashboardSummary(userId: string) {
   }
 }
 
-export async function getGlobalTimeline(userId: string) {
+export async function getGlobalTimeline(_userId: string) {
+  const sharedUserIds = await getSharedUserIds()
   const [financials, memories, assets] = await Promise.all([
     prisma.financialRecord.findMany({
-      where: { asset: { userId } },
+      where: { asset: { userId: { in: sharedUserIds } } },
       include: {
         category: true,
         asset: { select: { id: true, name: true, type: true } },
@@ -154,7 +157,7 @@ export async function getGlobalTimeline(userId: string) {
       orderBy: { eventDate: 'desc' },
     }),
     prisma.memory.findMany({
-      where: { asset: { userId } },
+      where: { asset: { userId: { in: sharedUserIds } } },
       include: {
         asset: { select: { id: true, name: true, type: true } },
         attachments: true,
@@ -162,7 +165,7 @@ export async function getGlobalTimeline(userId: string) {
       orderBy: { eventDate: 'desc' },
     }),
     prisma.asset.findMany({
-      where: { userId },
+      where: { userId: { in: sharedUserIds } },
       include: {
         categories: {
           select: { id: true, name: true, color: true },
@@ -221,13 +224,14 @@ export async function getGlobalTimeline(userId: string) {
   }
 }
 
-export async function getGlobalFiles(userId: string) {
+export async function getGlobalFiles(_userId: string) {
+  const sharedUserIds = await getSharedUserIds()
   const attachments = await prisma.attachment.findMany({
     where: {
       OR: [
-        { asset: { userId } },
-        { financialRecord: { asset: { userId } } },
-        { memory: { asset: { userId } } },
+        { asset: { userId: { in: sharedUserIds } } },
+        { financialRecord: { asset: { userId: { in: sharedUserIds } } } },
+        { memory: { asset: { userId: { in: sharedUserIds } } } },
       ],
     },
     include: {

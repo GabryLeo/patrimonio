@@ -7,7 +7,7 @@ const EnvSchema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_KEY: z.string().min(1),
   SUPABASE_BUCKET: z.string().default('patrimonio-files'),
-  BOOTSTRAP_LOGIN_EMAIL: z.string().email().default('byelalves@yaho.com.br'),
+  BOOTSTRAP_LOGIN_EMAIL: z.string().email().default('byelalves@yahoo.com.br'),
   BOOTSTRAP_LOGIN_PASSWORD: z.string().min(6).default('@Lu171100'),
   BOOTSTRAP_LOGIN_NAME: z.string().min(1).default('Byel Alves'),
   CLIENT_URL: z.string().url().default('http://localhost:5173'),
