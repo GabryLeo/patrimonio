@@ -50,22 +50,10 @@ export default function DashboardPage() {
         <>
           <section className="grid grid-cols-2 gap-3">
             <SummaryCard label="Patrimônio total" value={formatCurrency(data?.totalPatrimony ?? 0)} accent />
-            <SummaryCard label="Quitado no patrimônio" value={formatCurrency(data?.totalSettled ?? 0)} />
             <SummaryCard label="Total pago" value={formatCurrency(data?.totalPaid ?? 0)} />
+            <SummaryCard label="Excedente" value={formatCurrency(data?.totalOverage ?? 0)} />
             <SummaryCard label="Saldo restante" value={formatCurrency(data?.remainingBalance ?? 0)} />
           </section>
-
-          {(data?.totalOverage ?? 0) > 0 && (
-            <Card className="border-0 bg-amber-50 shadow-sm">
-              <CardContent className="flex items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="text-sm font-semibold text-amber-900">Juros / excedente</p>
-                  <p className="text-xs text-amber-800">Valor pago acima do valor fixo dos patrimônios.</p>
-                </div>
-                <p className="text-lg font-bold text-amber-900">{formatCurrency(data?.totalOverage ?? 0)}</p>
-              </CardContent>
-            </Card>
-          )}
 
           <section className="space-y-3">
             <SectionHeader title="Patrimônios" actionLabel="Ver lista" onAction={() => navigate('/assets')} />
@@ -86,7 +74,7 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-3 gap-3 text-xs">
                         <Metric label="Valor fixo" value={formatCurrency(asset.purchaseValue ?? 0)} />
-                        <Metric label="Quitado" value={formatCurrency(asset.settledAmount ?? 0)} />
+                        <Metric label="Total pago" value={formatCurrency(asset.totalPaid ?? 0)} />
                         <Metric label="Lançamentos" value={String(asset.recordsCount ?? 0)} />
                       </div>
 

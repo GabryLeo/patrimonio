@@ -19,6 +19,20 @@ async function assertUniqueAssetName(name: string, excludeId?: string) {
   }
 }
 
+async function assertAssetValueNotLowerThanPaid(assetId: string, totalValue?: number | null) {
+  if (totalValue == null) return
+
+  const financials = await prisma.financialRecord.findMany({
+    where: { assetId },
+    select: { amount: true },
+  })
+
+  const totalPaid = financials.reduce((sum, item) => sum + Number(item.amount), 0)
+  if (totalPaid > 0 && totalValue < totalPaid) {
+    throw new Error(`O valor do patrimônio não pode ficar abaixo do total já pago (${totalPaid.toFixed(2)})`)
+  }
+}
+
 export async function listAssets(userId: string) {
   const where = await getSharedAssetWhere()
   return prisma.asset.findMany({
@@ -63,6 +77,9 @@ export async function updateAsset(id: string, userId: string, data: UpdateAssetI
   await getAsset(id, userId)
   if (data.name) {
     await assertUniqueAssetName(data.name, id)
+  }
+  if (data.totalValue != null) {
+    await assertAssetValueNotLowerThanPaid(id, data.totalValue)
   }
   return prisma.asset.update({
     where: { id },

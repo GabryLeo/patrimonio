@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import axios from 'axios'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import { ArrowLeft, DollarSign, Clock, FileText, Plus, Trash2, Pencil } from 'lucide-react'
 import { useAsset, useUpdateAsset, useDeleteAsset } from '@/hooks/useAssets'
@@ -50,6 +51,7 @@ export default function AssetOverviewPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const metrics = buildAssetMetrics(Number(asset?.totalValue ?? 0), records ?? [])
+  const [editError, setEditError] = useState('')
 
   const categoryTotals = records?.reduce((acc: Record<string, number>, r: any) => {
     const key = r.categoryId ?? '__outros__'
@@ -70,17 +72,23 @@ export default function AssetOverviewPage() {
     setEditType(asset?.type ?? '')
     setEditValue(asset?.totalValue ? String(asset.totalValue) : '')
     setEditDate(asset?.acquisitionDate ? asset.acquisitionDate.slice(0, 10) : '')
+    setEditError('')
     setEditDialogOpen(true)
   }
 
   async function handleEditSave() {
-    await updateAsset.mutateAsync({
-      name: editName || undefined,
-      type: editType as any || undefined,
-      totalValue: editValue ? parseFloat(editValue) : undefined,
-      acquisitionDate: editDate || undefined,
-    })
-    setEditDialogOpen(false)
+    try {
+      setEditError('')
+      await updateAsset.mutateAsync({
+        name: editName || undefined,
+        type: editType as any || undefined,
+        totalValue: editValue ? parseFloat(editValue) : undefined,
+        acquisitionDate: editDate || undefined,
+      })
+      setEditDialogOpen(false)
+    } catch (error) {
+      setEditError(axios.isAxiosError(error) ? error.response?.data?.error ?? 'Erro ao salvar patrimônio' : 'Erro ao salvar patrimônio')
+    }
   }
 
   async function handleDelete() {
@@ -146,7 +154,7 @@ export default function AssetOverviewPage() {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 text-xs">
-              <MetricCard label="Quitado" value={formatCurrency(metrics.settledAmount)} />
+              <MetricCard label="Quitado até o valor" value={formatCurrency(metrics.settledAmount)} />
               <MetricCard label="Excedente" value={formatCurrency(metrics.overageAmount)} />
               <MetricCard label="Saldo" value={formatCurrency(metrics.remainingBalance)} />
             </div>
@@ -281,6 +289,7 @@ export default function AssetOverviewPage() {
               <Label>Data da compra</Label>
               <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
             </div>
+            {editError ? <p className="text-center text-xs text-destructive">{editError}</p> : null}
             <div className="flex gap-2 pt-2">
               <Button type="button" variant="outline" className="flex-1" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
               <Button className="flex-1" disabled={updateAsset.isPending} onClick={handleEditSave}>
