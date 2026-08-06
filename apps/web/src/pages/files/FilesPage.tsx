@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Download, Eye, FileImage, FileText, Search } from 'lucide-react'
 import { useGlobalFiles } from '@/hooks/useDashboard'
-import { formatDate, formatFileSize } from '@/lib/formatters'
+import { formatDate, formatFileSize, prettifyFileName } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -116,11 +116,11 @@ export default function FilesPage() {
                       {file.type === 'IMAGE' ? <FileImage className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{file.name}</p>
+                      <p className="truncate text-sm font-semibold">{prettifyFileName(file.name)}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatFileSize(file.size)} • {formatDate(file.createdAt)}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">{file.sourceTitle}</p>
+                      <p className="truncate text-xs text-muted-foreground">{prettifyFileName(file.sourceTitle)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <a href={file.url} target="_blank" rel="noreferrer" className="rounded-xl border p-2 text-muted-foreground transition-colors hover:text-foreground">

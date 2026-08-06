@@ -70,6 +70,7 @@ export async function getDashboardSummary(_userId: string) {
   }))
 
   const totalInvested = metricsByAsset.reduce((sum, entry) => sum + entry.metrics.totalPaid, 0)
+  const totalSettled = metricsByAsset.reduce((sum, entry) => sum + entry.metrics.settledAmount, 0)
 
   const monthTotal = monthlyRecords.reduce((sum, r) => sum + Number(r.amount), 0)
   const totalPatrimony = assets.reduce((sum, asset) => sum + Number(asset.totalValue ?? 0), 0)
@@ -125,6 +126,7 @@ export async function getDashboardSummary(_userId: string) {
     totalPatrimony,
     totalInvested,
     totalPaid,
+    totalSettled,
     remainingBalance,
     monthTotal,
     totalOverage,

@@ -50,8 +50,8 @@ export default function DashboardPage() {
         <>
           <section className="grid grid-cols-2 gap-3">
             <SummaryCard label="Patrimônio total" value={formatCurrency(data?.totalPatrimony ?? 0)} accent />
+            <SummaryCard label="Quitado no patrimônio" value={formatCurrency(data?.totalSettled ?? 0)} />
             <SummaryCard label="Total pago" value={formatCurrency(data?.totalPaid ?? 0)} />
-            <SummaryCard label="Total investido" value={formatCurrency(data?.totalInvested ?? 0)} />
             <SummaryCard label="Saldo restante" value={formatCurrency(data?.remainingBalance ?? 0)} />
           </section>
 
@@ -85,8 +85,8 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="grid grid-cols-3 gap-3 text-xs">
-                        <Metric label="Valor" value={formatCurrency(asset.purchaseValue ?? 0)} />
-                        <Metric label="Pago" value={formatCurrency(asset.totalPaid ?? 0)} />
+                        <Metric label="Valor fixo" value={formatCurrency(asset.purchaseValue ?? 0)} />
+                        <Metric label="Quitado" value={formatCurrency(asset.settledAmount ?? 0)} />
                         <Metric label="Lançamentos" value={String(asset.recordsCount ?? 0)} />
                       </div>
 

@@ -32,3 +32,10 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
+
+export function prettifyFileName(name: string): string {
+  return name
+    .replace(/^[0-9a-f]{8}-[0-9a-f-]{27,}_?/i, '')
+    .replace(/^[0-9a-f]{8,}_/i, '')
+    .trim() || name
+}

@@ -21,7 +21,7 @@ export async function listUsers(_req: Request, res: Response, next: NextFunction
     }
 
     res.json({
-      users: Array.from(deduped.values()).filter((user) => canonicalizeEmail(user.email) !== canonicalizeEmail('byelalves@yaho.com.br')),
+      users: Array.from(deduped.values()),
     })
   } catch (err) {
     next(err)

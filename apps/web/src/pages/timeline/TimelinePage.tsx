@@ -22,7 +22,7 @@ type TimelineEvent = {
 }
 
 export default function TimelinePage() {
-  const { data, isLoading } = useGlobalTimeline()
+  const { data, isLoading, isError } = useGlobalTimeline()
   const [year, setYear] = useState('all')
   const [month, setMonth] = useState('all')
   const [assetId, setAssetId] = useState('all')
@@ -32,14 +32,14 @@ export default function TimelinePage() {
   const assets = (data?.filters?.assets ?? []) as Array<{ id: string; name: string }>
   const categories = (data?.filters?.categories ?? []) as Array<{ id: string; name: string }>
 
-  const years = useMemo<string[]>(
-    () => Array.from(new Set(events.map((event) => String(new Date(event.eventDate).getFullYear())))),
-    [events]
+  const years = useMemo(
+    () => Array.from(new Set(events.map((event) => String(new Date(event.eventDate).getFullYear())))).sort((a, b) => Number(b) - Number(a)),
+    [events],
   )
 
-  const months = useMemo<string[]>(
-    () => Array.from(new Set(events.map((event) => String(new Date(event.eventDate).getMonth() + 1).padStart(2, '0')))),
-    [events]
+  const months = useMemo(
+    () => Array.from(new Set(events.map((event) => String(new Date(event.eventDate).getMonth() + 1).padStart(2, '0')))).sort(),
+    [events],
   )
 
   const filtered = events.filter((event) => {
@@ -67,9 +67,14 @@ export default function TimelinePage() {
 
       <Card className="border-0 bg-card/80 shadow-sm">
         <CardContent className="space-y-3 p-4">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Filter className="h-4 w-4" />
-            Filtros
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Filter className="h-4 w-4" />
+              Filtros
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {filtered.length} evento(s) visível(is)
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <FilterSelect
@@ -104,15 +109,23 @@ export default function TimelinePage() {
         <div className="space-y-3">
           {[1, 2, 3].map((item) => <Skeleton key={item} className="h-24" />)}
         </div>
+      ) : isError ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            Não foi possível carregar a linha do tempo agora.
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            Nenhum evento encontrado com filtros atuais.
+            {events.length === 0
+              ? 'Nenhum evento registrado ainda.'
+              : 'Nenhum evento encontrado com os filtros atuais.'}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">
-          {Object.entries(grouped).map(([group, groupEvents]) => (
+          {(Object.entries(grouped) as Array<[string, TimelineEvent[]]>).map(([group, groupEvents]) => (
             <section key={group} className="space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{group}</h2>
               <div className="relative space-y-3 pl-4">
@@ -128,7 +141,7 @@ export default function TimelinePage() {
                             {event.asset?.name} • {formatDate(event.eventDate)}
                           </p>
                         </div>
-                        {event.amount ? <p className="text-sm font-bold">{formatCurrency(event.amount)}</p> : null}
+                        {event.amount != null ? <p className="text-sm font-bold">{formatCurrency(event.amount)}</p> : null}
                       </div>
 
                       <div className="flex flex-wrap gap-2 text-xs">

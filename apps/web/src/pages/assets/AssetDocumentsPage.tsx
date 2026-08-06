@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/apiClient'
 import { useUpload } from '@/hooks/useUpload'
-import { formatDate, formatFileSize } from '@/lib/formatters'
+import { formatDate, formatFileSize, prettifyFileName } from '@/lib/formatters'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -145,7 +145,7 @@ export default function AssetDocumentsPage() {
                   <CardContent className="flex items-center gap-3 p-4">
                     <FileText className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{doc.name}</p>
+                      <p className="truncate text-sm font-medium">{prettifyFileName(doc.name)}</p>
                       <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} • {formatDate(doc.createdAt)}</p>
                     </div>
                     <a href={doc.url} target="_blank" rel="noopener noreferrer">
