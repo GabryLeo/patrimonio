@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput'
 
 const assetTypes = Object.entries(ASSET_TYPE_LABELS) as [string, string][]
 
@@ -32,6 +34,7 @@ export function AssetCreateDialog() {
   const navigate = useNavigate()
   const createAsset = useCreateAsset()
   const { assetDialogOpen, setAssetDialogOpen } = useUIStore()
+  const [currencyDisplay, setCurrencyDisplay] = useState('')
 
   const {
     register,
@@ -46,6 +49,12 @@ export function AssetCreateDialog() {
 
   const isFinanced = watch('isFinanced')
 
+  useEffect(() => {
+    if (!assetDialogOpen) {
+      setCurrencyDisplay('')
+    }
+  }, [assetDialogOpen])
+
   async function onSubmit(data: FormValues) {
     const { isFinanced, financingBank, ...rest } = data
     const payload: CreateAssetInput = {
@@ -55,13 +64,23 @@ export function AssetCreateDialog() {
 
     const asset = await createAsset.mutateAsync(payload)
     reset()
+    setCurrencyDisplay('')
     setAssetDialogOpen(false)
     navigate(`/assets/${asset.id}`)
   }
 
   function handleOpenChange(open: boolean) {
     setAssetDialogOpen(open)
-    if (!open) reset()
+    if (!open) {
+      reset()
+      setCurrencyDisplay('')
+    }
+  }
+
+  function handleCurrencyChange(value: string) {
+    const formatted = formatCurrencyInput(value)
+    setCurrencyDisplay(formatted)
+    setValue('totalValue', parseCurrencyInput(value), { shouldValidate: true })
   }
 
   return (
@@ -70,7 +89,7 @@ export function AssetCreateDialog() {
         <DialogHeader>
           <DialogTitle>Novo patrimônio</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-2 space-y-4">
           <div className="space-y-2">
             <Label>Nome</Label>
             <Input placeholder="Ex: Apartamento Centro" {...register('name')} />
@@ -80,9 +99,9 @@ export function AssetCreateDialog() {
             <Label>Tipo</Label>
             <Select onValueChange={(value) => setValue('type', value as FormValues['type'])}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione tipo" />
+                <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background">
                 {assetTypes.map(([value, label]) => (
                   <SelectItem key={value} value={value}>
                     {label}
@@ -94,7 +113,12 @@ export function AssetCreateDialog() {
           </div>
           <div className="space-y-2">
             <Label>Valor de compra (R$)</Label>
-            <Input type="number" step="0.01" min="0.01" placeholder="0,00" {...register('totalValue', { valueAsNumber: true })} />
+            <Input
+              inputMode="numeric"
+              placeholder="0,00"
+              value={currencyDisplay}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+            />
             {errors.totalValue && <p className="text-xs text-destructive">{errors.totalValue.message}</p>}
           </div>
           <div className="space-y-2">

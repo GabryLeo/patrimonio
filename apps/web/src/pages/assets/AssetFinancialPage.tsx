@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CreateFinancialRecordSchema, type CreateFinancialRecordInput } from '@patrimonio/shared'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput'
 
 type Mode = 'create' | 'edit'
 
@@ -32,6 +33,7 @@ export default function AssetFinancialPage() {
   const [mode, setMode] = useState<Mode>('create')
   const [editingRecord, setEditingRecord] = useState<any>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [amountDisplay, setAmountDisplay] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<CreateFinancialRecordInput>({
@@ -42,6 +44,7 @@ export default function AssetFinancialPage() {
     setMode('create')
     setEditingRecord(null)
     setSelectedFile(null)
+    setAmountDisplay('')
     reset()
     setOpen(true)
   }
@@ -52,6 +55,7 @@ export default function AssetFinancialPage() {
     setSelectedFile(null)
     setValue('title', record.title)
     setValue('amount', Number(record.amount))
+    setAmountDisplay(formatCurrencyInput(String(Math.round(Number(record.amount) * 100))))
     setValue('eventDate', record.eventDate?.slice(0, 10))
     setValue('notes', record.notes ?? '')
     if (record.categoryId) setValue('categoryId', record.categoryId)
@@ -70,6 +74,7 @@ export default function AssetFinancialPage() {
       }
       reset()
       setSelectedFile(null)
+      setAmountDisplay('')
       setOpen(false)
     } catch {
       // errors shown via mutation.isError
@@ -204,7 +209,16 @@ export default function AssetFinancialPage() {
             </div>
             <div className="space-y-2">
               <Label>Valor (R$)</Label>
-              <Input type="number" step="0.01" min="0.01" placeholder="0,00" {...register('amount', { valueAsNumber: true })} />
+              <Input
+                inputMode="numeric"
+                placeholder="0,00"
+                value={amountDisplay}
+                onChange={(e) => {
+                  const formatted = formatCurrencyInput(e.target.value)
+                  setAmountDisplay(formatted)
+                  setValue('amount', parseCurrencyInput(e.target.value), { shouldValidate: true })
+                }}
+              />
               {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
             </div>
             <div className="space-y-2">

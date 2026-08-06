@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useParams, useNavigate, NavLink } from 'react-router-dom'
 import { ArrowLeft, DollarSign, Clock, FileText, Plus, Trash2, Pencil } from 'lucide-react'
@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ASSET_TYPE_LABELS } from '@patrimonio/shared'
 import { cn } from '@/lib/cn'
 import { buildAssetMetrics } from '@/lib/assetMetrics'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/currencyInput'
 
 const PRESET_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280']
 const ASSET_TYPE_KEYS = Object.keys(ASSET_TYPE_LABELS) as (keyof typeof ASSET_TYPE_LABELS)[]
@@ -70,11 +71,17 @@ export default function AssetOverviewPage() {
   function openEdit() {
     setEditName(asset?.name ?? '')
     setEditType(asset?.type ?? '')
-    setEditValue(asset?.totalValue ? String(asset.totalValue) : '')
+    setEditValue(asset?.totalValue ? formatCurrencyInput(String(Math.round(Number(asset.totalValue) * 100))) : '')
     setEditDate(asset?.acquisitionDate ? asset.acquisitionDate.slice(0, 10) : '')
     setEditError('')
     setEditDialogOpen(true)
   }
+
+  useEffect(() => {
+    if (!editDialogOpen) {
+      setEditValue('')
+    }
+  }, [editDialogOpen])
 
   async function handleEditSave() {
     try {
@@ -82,7 +89,7 @@ export default function AssetOverviewPage() {
       await updateAsset.mutateAsync({
         name: editName || undefined,
         type: editType as any || undefined,
-        totalValue: editValue ? parseFloat(editValue) : undefined,
+        totalValue: editValue ? parseCurrencyInput(editValue) : undefined,
         acquisitionDate: editDate || undefined,
       })
       setEditDialogOpen(false)
@@ -283,7 +290,7 @@ export default function AssetOverviewPage() {
             </div>
             <div className="space-y-2">
               <Label>Valor de compra (R$)</Label>
-              <Input type="number" step="0.01" value={editValue} onChange={(e) => setEditValue(e.target.value)} />
+              <Input inputMode="numeric" value={editValue} onChange={(e) => setEditValue(formatCurrencyInput(e.target.value))} />
             </div>
             <div className="space-y-2">
               <Label>Data da compra</Label>
