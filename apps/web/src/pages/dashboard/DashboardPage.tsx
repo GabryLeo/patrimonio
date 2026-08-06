@@ -50,20 +50,28 @@ export default function DashboardPage() {
         <>
           <section className="grid grid-cols-2 gap-3">
             <SummaryCard label="Patrimônio total" value={formatCurrency(data?.totalPatrimony ?? 0)} accent />
-            <SummaryCard label="Total investido" value={formatCurrency(data?.totalInvested ?? 0)} />
             <SummaryCard label="Total pago" value={formatCurrency(data?.totalPaid ?? 0)} />
+            <SummaryCard label="Total investido" value={formatCurrency(data?.totalInvested ?? 0)} />
             <SummaryCard label="Saldo restante" value={formatCurrency(data?.remainingBalance ?? 0)} />
           </section>
+
+          {(data?.totalOverage ?? 0) > 0 && (
+            <Card className="border-0 bg-amber-50 shadow-sm">
+              <CardContent className="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Juros / excedente</p>
+                  <p className="text-xs text-amber-800">Valor pago acima do valor fixo dos patrimônios.</p>
+                </div>
+                <p className="text-lg font-bold text-amber-900">{formatCurrency(data?.totalOverage ?? 0)}</p>
+              </CardContent>
+            </Card>
+          )}
 
           <section className="space-y-3">
             <SectionHeader title="Patrimônios" actionLabel="Ver lista" onAction={() => navigate('/assets')} />
             <div className="space-y-3">
               {assets.map((asset: any) => (
-                <button
-                  key={asset.id}
-                  onClick={() => navigate(`/assets/${asset.id}`)}
-                  className="w-full"
-                >
+                <button key={asset.id} onClick={() => navigate(`/assets/${asset.id}`)} className="w-full">
                   <Card className="overflow-hidden border-0 text-left shadow-sm">
                     <CardContent className="space-y-4 p-4">
                       <div className="flex items-start justify-between gap-3">
@@ -78,9 +86,15 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-3 gap-3 text-xs">
                         <Metric label="Valor" value={formatCurrency(asset.purchaseValue ?? 0)} />
-                        <Metric label="Pago" value={formatCurrency(asset.totalInvested ?? 0)} />
+                        <Metric label="Pago" value={formatCurrency(asset.totalPaid ?? 0)} />
                         <Metric label="Lançamentos" value={String(asset.recordsCount ?? 0)} />
                       </div>
+
+                      {(asset.overageAmount ?? 0) > 0 && (
+                        <div className="rounded-2xl bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                          Excedente acumulado: <strong>{formatCurrency(asset.overageAmount ?? 0)}</strong>
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -176,13 +190,11 @@ function EmptyHome({ onCreate }: { onCreate: () => void }) {
   return (
     <Card className="overflow-hidden border-0 shadow-sm">
       <CardContent className="space-y-5 p-6 text-center">
-        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] bg-secondary text-5xl">
-          🏡
-        </div>
+        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] bg-secondary text-5xl">⌂</div>
         <div className="space-y-2">
           <h2 className="text-xl font-semibold">Comece seu primeiro patrimônio</h2>
           <p className="text-sm text-muted-foreground">
-            Crie apartamento, carro, casa ou qualquer outro bem. Depois os lançamentos atualizam tudo automático.
+            Crie apartamento, carro, casa ou qualquer outro bem. Depois acompanhe pagamentos, memórias e arquivos sem alterar o valor fixo do patrimônio.
           </p>
         </div>
         <Button className="w-full rounded-2xl" onClick={onCreate}>

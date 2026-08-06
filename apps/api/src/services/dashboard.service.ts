@@ -1,6 +1,7 @@
 import { prisma } from '../db/client'
 import { endOfMonth, endOfYear, format, startOfMonth, startOfYear } from 'date-fns'
 import { getSharedUserIds } from '../lib/sharing'
+import { buildAssetMetrics } from '../lib/assetMetrics'
 
 export async function getDashboardSummary(_userId: string) {
   const sharedUserIds = await getSharedUserIds()
@@ -14,7 +15,12 @@ export async function getDashboardSummary(_userId: string) {
     prisma.asset.findMany({
       where: { userId: { in: sharedUserIds }, status: 'ACTIVE' },
       include: {
-        financials: { select: { amount: true } },
+        financials: {
+          select: {
+            amount: true,
+            category: { select: { id: true, name: true, color: true } },
+          },
+        },
         _count: { select: { financials: true, attachments: true } },
       },
     }),
@@ -58,15 +64,18 @@ export async function getDashboardSummary(_userId: string) {
     }),
   ])
 
-  const totalInvested = assets.reduce((sum, asset) => {
-    const assetTotal = asset.financials.reduce((s, f) => s + Number(f.amount), 0)
-    return sum + assetTotal
-  }, 0)
+  const metricsByAsset = assets.map((asset) => ({
+    asset,
+    metrics: buildAssetMetrics(Number(asset.totalValue ?? 0), asset.financials),
+  }))
+
+  const totalInvested = metricsByAsset.reduce((sum, entry) => sum + entry.metrics.totalPaid, 0)
 
   const monthTotal = monthlyRecords.reduce((sum, r) => sum + Number(r.amount), 0)
   const totalPatrimony = assets.reduce((sum, asset) => sum + Number(asset.totalValue ?? 0), 0)
   const totalPaid = totalInvested
-  const remainingBalance = Math.max(totalPatrimony - totalPaid, 0)
+  const remainingBalance = metricsByAsset.reduce((sum, entry) => sum + entry.metrics.remainingBalance, 0)
+  const totalOverage = metricsByAsset.reduce((sum, entry) => sum + entry.metrics.overageAmount, 0)
 
   const categoryTotals = yearlyRecords.reduce<Record<string, { name: string; color: string; total: number }>>((acc, record) => {
     const key = record.category?.id ?? 'uncategorized'
@@ -118,19 +127,21 @@ export async function getDashboardSummary(_userId: string) {
     totalPaid,
     remainingBalance,
     monthTotal,
-    assets: assets.map((a) => ({
-      id: a.id,
-      name: a.name,
-      type: a.type,
-      photoUrl: a.coverImageUrl,
-      purchaseValue: Number(a.totalValue ?? 0),
-      totalInvested: a.financials.reduce((s, f) => s + Number(f.amount), 0),
-      remainingBalance: Math.max(Number(a.totalValue ?? 0) - a.financials.reduce((s, f) => s + Number(f.amount), 0), 0),
-      progressPercent: Number(a.totalValue ?? 0) > 0
-        ? Math.min((a.financials.reduce((s, f) => s + Number(f.amount), 0) / Number(a.totalValue)) * 100, 100)
-        : 0,
-      recordsCount: a._count.financials,
-      filesCount: a._count.attachments,
+    totalOverage,
+    assets: metricsByAsset.map(({ asset, metrics }) => ({
+      id: asset.id,
+      name: asset.name,
+      type: asset.type,
+      photoUrl: asset.coverImageUrl,
+      purchaseValue: Number(asset.totalValue ?? 0),
+      totalPaid: metrics.totalPaid,
+      settledAmount: metrics.settledAmount,
+      overageAmount: metrics.overageAmount,
+      remainingBalance: metrics.remainingBalance,
+      progressPercent: metrics.progressPercent,
+      categoryTotals: metrics.categoryTotals,
+      recordsCount: asset._count.financials,
+      filesCount: asset._count.attachments,
     })),
     recentRecords,
     recentMemories,

@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Building2, DollarSign, FileUp, Star } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useUIStore } from '@/store/uiStore'
+import { useAssets } from '@/hooks/useAssets'
 
 const addOptions = [
   {
@@ -38,11 +39,13 @@ export function AddSheet() {
   const { addSheetOpen, setAddSheetOpen, setAssetDialogOpen } = useUIStore()
   const location = useLocation()
   const navigate = useNavigate()
+  const { data: assets = [] } = useAssets()
 
   const assetMatch = location.pathname.match(/\/assets\/([^/]+)/)
   const assetId = assetMatch?.[1]
+  const currentAsset = assets.find((asset: any) => asset.id === assetId)
 
-  function handleOption(sub: string) {
+  function handleOption(sub: string, selectedAssetId?: string) {
     setAddSheetOpen(false)
 
     if (sub === 'asset') {
@@ -50,12 +53,7 @@ export function AddSheet() {
       return
     }
 
-    if (!assetId) {
-      navigate('/')
-      return
-    }
-
-    navigate(`/assets/${assetId}/${sub}`)
+    navigate(`/assets/${selectedAssetId ?? assetId}/${sub}`)
   }
 
   return (
@@ -63,27 +61,50 @@ export function AddSheet() {
       <SheetContent side="bottom" className="pb-8">
         <SheetHeader className="mb-4">
           <SheetTitle>O que deseja adicionar?</SheetTitle>
-          {!assetId && (
-            <p className="text-xs text-muted-foreground">
-              Novo patrimônio funciona de qualquer tela. Outros itens usam patrimônio atual.
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            {assetId
+              ? `Patrimônio atual: ${currentAsset?.name ?? 'selecionado'}.`
+              : 'Escolha um patrimônio para continuar antes de criar lançamento, memória ou arquivo.'}
+          </p>
         </SheetHeader>
+
         <div className="grid grid-cols-1 gap-2">
           {addOptions.map((option) => (
-            <button
-              key={option.label}
-              onClick={() => handleOption(option.sub)}
-              className="flex items-center gap-4 rounded-2xl border p-4 text-left transition-colors hover:bg-accent active:scale-[0.99]"
-            >
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${option.color}`}>
-                <option.icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">{option.label}</p>
-                <p className="text-xs text-muted-foreground">{option.description}</p>
-              </div>
-            </button>
+            <div key={option.label} className="rounded-2xl border p-3">
+              <button
+                onClick={() => (option.sub === 'asset' || assetId ? handleOption(option.sub) : undefined)}
+                className="flex w-full items-center gap-4 text-left"
+              >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${option.color}`}>
+                  <option.icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{option.label}</p>
+                  <p className="text-xs text-muted-foreground">{option.description}</p>
+                </div>
+              </button>
+
+              {!assetId && option.sub !== 'asset' && (
+                <div className="mt-3 space-y-2 border-t pt-3">
+                  {assets.length === 0 ? (
+                    <div className="rounded-xl bg-secondary/60 p-3 text-xs text-muted-foreground">
+                      Nenhum patrimônio cadastrado ainda. Crie o primeiro para adicionar lançamentos, memórias e arquivos.
+                    </div>
+                  ) : (
+                    assets.map((asset: any) => (
+                      <button
+                        key={asset.id}
+                        onClick={() => handleOption(option.sub, asset.id)}
+                        className="flex w-full items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
+                      >
+                        <span>{asset.name}</span>
+                        <span className="text-xs text-muted-foreground">Escolher</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </SheetContent>

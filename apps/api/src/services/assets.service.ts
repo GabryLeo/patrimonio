@@ -2,6 +2,22 @@ import { prisma } from '../db/client'
 import { DEFAULT_CATEGORIES } from '@patrimonio/shared'
 import type { CreateAssetInput, UpdateAssetInput, AssetType } from '@patrimonio/shared'
 import { getSharedAssetWhere, resolveAssetOwnerId } from '../lib/sharing'
+import { normalizeLabel } from '../lib/assetMetrics'
+
+async function assertUniqueAssetName(name: string, excludeId?: string) {
+  const where = await getSharedAssetWhere()
+  const assets = await prisma.asset.findMany({
+    where,
+    select: { id: true, name: true },
+  })
+
+  const normalizedName = normalizeLabel(name)
+  const conflict = assets.find((asset) => asset.id !== excludeId && normalizeLabel(asset.name) === normalizedName)
+
+  if (conflict) {
+    throw new Error('Já existe um patrimônio com esse nome')
+  }
+}
 
 export async function listAssets(userId: string) {
   const where = await getSharedAssetWhere()
@@ -13,6 +29,7 @@ export async function listAssets(userId: string) {
 }
 
 export async function createAsset(userId: string, data: CreateAssetInput) {
+  await assertUniqueAssetName(data.name)
   const defaults = DEFAULT_CATEGORIES[data.type as AssetType] ?? []
   const ownerUserId = await resolveAssetOwnerId(userId)
   return prisma.asset.create({
@@ -44,6 +61,9 @@ export async function getAsset(id: string, userId: string) {
 
 export async function updateAsset(id: string, userId: string, data: UpdateAssetInput) {
   await getAsset(id, userId)
+  if (data.name) {
+    await assertUniqueAssetName(data.name, id)
+  }
   return prisma.asset.update({
     where: { id },
     data: {

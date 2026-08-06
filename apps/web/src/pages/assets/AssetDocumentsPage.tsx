@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileText, ExternalLink, Upload, X } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 
 type FileTypeConfig = { label: string; emoji: string; accept: string }
 
@@ -25,6 +27,8 @@ export default function AssetDocumentsPage() {
   const upload = useUpload({ assetId: id })
   const fileRef = useRef<HTMLInputElement>(null)
   const [showTypeSelector, setShowTypeSelector] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [customName, setCustomName] = useState('')
 
   const { data: docs, isLoading: docsLoading } = useQuery({
     queryKey: ['documents', id],
@@ -44,13 +48,21 @@ export default function AssetDocumentsPage() {
     enabled: !!id,
   })
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    await upload.mutateAsync({ file })
+    setSelectedFile(file)
+    setCustomName(file.name)
+    e.target.value = ''
+  }
+
+  async function handleConfirmUpload() {
+    if (!selectedFile) return
+    await upload.mutateAsync({ file: selectedFile, name: customName })
     qc.invalidateQueries({ queryKey: ['documents', id] })
     qc.invalidateQueries({ queryKey: ['photos', id] })
-    e.target.value = ''
+    setSelectedFile(null)
+    setCustomName('')
   }
 
   function handleTypeSelect(config: FileTypeConfig) {
@@ -66,33 +78,29 @@ export default function AssetDocumentsPage() {
 
   return (
     <div className="px-4 pt-6 pb-6">
-      {upload.isPending && (
-        <div className="text-center text-sm text-muted-foreground py-2 mb-2">Enviando arquivo...</div>
-      )}
-      {upload.isError && (
-        <div className="text-center text-sm text-destructive py-2 mb-2">Erro ao enviar. Tente novamente.</div>
-      )}
+      {upload.isPending && <div className="mb-2 py-2 text-center text-sm text-muted-foreground">Enviando arquivo...</div>}
+      {upload.isError && <div className="mb-2 py-2 text-center text-sm text-destructive">Erro ao enviar. Tente novamente.</div>}
 
-      <input
-        ref={fileRef}
-        type="file"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} />
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-2">
+        <p className="text-sm text-muted-foreground">Arquivos deste patrimônio</p>
         <h2 className="text-lg font-bold">Arquivos</h2>
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">Cada arquivo fica vinculado a este patrimônio.</p>
         {!showTypeSelector && (
           <Button size="sm" variant="outline" onClick={() => setShowTypeSelector(true)} disabled={upload.isPending}>
-            <Upload className="h-4 w-4 mr-1" />
+            <Upload className="mr-1 h-4 w-4" />
             Adicionar arquivo
           </Button>
         )}
       </div>
 
       {showTypeSelector && (
-        <div className="mb-4 p-3 border rounded-xl bg-secondary/50">
-          <div className="flex items-center justify-between mb-2">
+        <div className="mb-4 rounded-xl border bg-secondary/50 p-3">
+          <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-medium">Tipo de arquivo</p>
             <button onClick={() => setShowTypeSelector(false)}>
               <X className="h-4 w-4 text-muted-foreground" />
@@ -103,7 +111,7 @@ export default function AssetDocumentsPage() {
               <button
                 key={ft.label}
                 onClick={() => handleTypeSelect(ft)}
-                className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-background transition-colors text-center"
+                className="flex flex-col items-center gap-1 rounded-lg p-2 text-center transition-colors hover:bg-background"
               >
                 <span className="text-xl">{ft.emoji}</span>
                 <span className="text-xs text-muted-foreground">{ft.label}</span>
@@ -124,8 +132,8 @@ export default function AssetDocumentsPage() {
           {(photos?.length ?? 0) > 0 && (
             <div className="grid grid-cols-3 gap-2">
               {photos.map((photo: any) => (
-                <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" className="aspect-square block">
-                  <img src={photo.url} alt={photo.name} className="w-full h-full object-cover rounded-xl" />
+                <a key={photo.id} href={photo.url} target="_blank" rel="noopener noreferrer" className="block aspect-square">
+                  <img src={photo.url} alt={photo.name} className="h-full w-full rounded-xl object-cover" />
                 </a>
               ))}
             </div>
@@ -134,11 +142,11 @@ export default function AssetDocumentsPage() {
             <div className="space-y-2">
               {docs.map((doc: any) => (
                 <Card key={doc.id}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} · {formatDate(doc.createdAt)}</p>
+                  <CardContent className="flex items-center gap-3 p-4">
+                    <FileText className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{doc.name}</p>
+                      <p className="text-xs text-muted-foreground">{formatFileSize(doc.size)} • {formatDate(doc.createdAt)}</p>
                     </div>
                     <a href={doc.url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 text-muted-foreground" />
@@ -152,12 +160,32 @@ export default function AssetDocumentsPage() {
       ) : (
         <button
           onClick={() => setShowTypeSelector(true)}
-          className="w-full rounded-xl border border-dashed p-8 text-center text-muted-foreground text-sm hover:bg-accent transition-colors"
+          className="w-full rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground transition-colors hover:bg-accent"
         >
-          <Upload className="h-8 w-8 mx-auto mb-2 opacity-30" />
-          Toque para adicionar arquivos
+          <Upload className="mx-auto mb-2 h-8 w-8 opacity-30" />
+          Este patrimônio ainda não tem arquivos. Toque para adicionar o primeiro.
         </button>
       )}
+
+      <Dialog open={!!selectedFile} onOpenChange={(open) => (!open ? setSelectedFile(null) : undefined)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear arquivo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Edite o nome antes de finalizar o envio.</p>
+            <Input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Nome do arquivo" />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setSelectedFile(null)}>
+                Cancelar
+              </Button>
+              <Button type="button" className="flex-1" onClick={handleConfirmUpload} disabled={!customName.trim() || upload.isPending}>
+                {upload.isPending ? 'Enviando...' : 'Salvar arquivo'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

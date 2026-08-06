@@ -9,6 +9,7 @@ interface UploadOptions {
 
 interface UploadArgs {
   file: File
+  name?: string
   options?: UploadOptions
 }
 
@@ -16,11 +17,12 @@ export function useUpload(defaultOptions: UploadOptions = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ file, options = {} }: UploadArgs) => {
+    mutationFn: async ({ file, name, options = {} }: UploadArgs) => {
       const merged = { ...defaultOptions, ...options }
+      const finalName = name?.trim() || file.name
 
       const { data: presign } = await api.post('/upload/presign', {
-        filename: file.name,
+        filename: finalName,
         mimeType: file.type,
         size: file.size,
       })
@@ -33,7 +35,7 @@ export function useUpload(defaultOptions: UploadOptions = {}) {
 
       const { data: confirm } = await api.post('/upload/confirm', {
         url: presign.publicUrl,
-        name: file.name,
+        name: finalName,
         size: file.size,
         mimeType: file.type,
         ...merged,
